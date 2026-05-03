@@ -5,7 +5,7 @@ import axios from 'axios';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [success, setSuccess] = useState(false); // Added success state
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -13,26 +13,34 @@ export default function Login() {
     e.preventDefault();
     try {
       setError('');
-      // ✅ Using 127.0.0.1 for better local compatibility
+      
+      // 1. Send Login Request
       const response = await axios.post("http://127.0.0.1:5000/api/auth/login", { 
-        email: email.toLowerCase(), // Normalize email input
+        email: email.toLowerCase(), 
         password 
       });
       
       if (response.status === 200) {
         setSuccess(true);
         
-        // 1. 💾 PERSISTENCE: Save user info so the app "remembers" Smriti
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // 2. STORE THE DATA
+        // Store the JWT token for API authorization
+        localStorage.setItem('token', response.data.token);
         
-        // 2. 🚀 REDIRECT: Go to Profile after a brief success message
+        // Store the user object (includes name, email, and role)
+        const userData = response.data.user;
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // 3. REDIRECT
+        // Short delay so the user sees the success message
         setTimeout(() => {
           navigate('/'); 
         }, 1500);
       }
     } catch (err: any) {
-      // Handles "Invalid credentials" or "User not found" from backend
-      setError(err.response?.data?.message || 'Login failed. Please check your email and password.');
+      // Handle various error scenarios
+      const message = err.response?.data?.message || 'Login failed. Please check your connection.';
+      setError(message);
     }
   };
 
@@ -46,7 +54,7 @@ export default function Login() {
 
         {/* Success Feedback */}
         {success && (
-          <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6 text-center border border-green-200 font-bold animate-bounce">
+          <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6 text-center border border-green-200 font-bold animate-pulse">
             Login Successful! Redirecting... 🎓
           </div>
         )}

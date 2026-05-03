@@ -1,25 +1,44 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { mockCourses, mockUser } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Award, Download, Share2, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function Certificate() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Find course safely
-  const course = mockCourses.find(c => c.id === courseId);
-  const enrolledCourse = mockUser.enrolledCourses.find(ec => ec.courseId === courseId);
+  // --- 1. DYNAMIC USER LOGIC ---
+  // This pulls the actual logged-in user instead of using 'mockUser'
+  const storedUser = localStorage.getItem('user');
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const userName = currentUser?.name || "Student"; 
 
-  // Logic check: We'll consider it "earned" if progress is 100
-  const isEarned = enrolledCourse && enrolledCourse.progress === 100;
+  // --- 2. FETCH COURSE DATA FROM MONGODB ---
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/courses/${courseId}`);
+        setCourse(res.data);
+      } catch (err) {
+        console.error("Error fetching course for certificate:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourseData();
+  }, [courseId]);
 
-  if (!course || !isEarned) {
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading Certificate...</div>;
+
+  if (!course) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
           <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Certificate not available</h2>
-          <p className="text-gray-600 mb-6">Complete 100% of the course to unlock your official certification.</p>
+          <p className="text-gray-600 mb-6">Course record not found.</p>
           <Link to="/my-courses" className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all">
             Back to My Courses
           </Link>
@@ -28,13 +47,11 @@ export default function Certificate() {
     );
   }
 
-  // Fallback for missing ID in mockUser
-  const userId = (mockUser as any).id || 'USER77';
-  const completionDate = new Date(); // In a real app, this would come from the DB
-  const certificateId = `LH-${courseId?.toUpperCase()}-${userId}-${completionDate.getFullYear()}`;
+  const completionDate = new Date();
+  const certificateId = `LH-${courseId?.toUpperCase()}-${userName.replace(/\s+/g, '-').toUpperCase()}-${completionDate.getFullYear()}`;
 
   const handleDownload = () => {
-    window.print(); // Best way to "download" a web-based certificate!
+    window.print(); 
   };
 
   const handleShare = () => {
@@ -79,7 +96,10 @@ export default function Certificate() {
 
             <div className="text-center mb-12">
               <span className="text-sm text-gray-400 uppercase tracking-[0.2em] font-bold">This is to certify that</span>
-              <h2 className="text-5xl font-extrabold text-gray-900 mt-4 mb-6 italic font-serif">{mockUser.name}</h2>
+              {/* ✅ DYNAMIC NAME: This now uses the logged-in user's name */}
+              <h2 className="text-5xl font-extrabold text-gray-900 mt-4 mb-6 italic font-serif underline decoration-purple-200">
+                {userName}
+              </h2>
               <span className="text-sm text-gray-400 uppercase tracking-[0.2em] font-bold">has successfully mastered</span>
               <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 mt-4 mb-10">
                 {course.title}
@@ -89,7 +109,7 @@ export default function Certificate() {
             <div className="grid md:grid-cols-3 gap-8 mb-12 text-center border-y border-gray-100 py-10">
               <div>
                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Instructor</p>
-                <p className="text-lg font-bold text-gray-900">{course.instructor}</p>
+                <p className="text-lg font-bold text-gray-900">{course.instructor || "LearnHub Academy"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 uppercase font-bold mb-1">Date Issued</p>
@@ -98,7 +118,7 @@ export default function Certificate() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Curriculum</p>
+                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Category</p>
                 <p className="text-lg font-bold text-gray-900">{course.category}</p>
               </div>
             </div>
@@ -115,28 +135,13 @@ export default function Certificate() {
               </div>
             </div>
 
-            {/* Skills Badges */}
-            <div className="mt-12 text-center">
-              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Core Competencies Developed</h4>
-              <div className="flex flex-wrap justify-center gap-2">
-                {course.whatYouLearn?.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="bg-purple-50 text-purple-700 px-4 py-1.5 rounded-lg text-sm font-medium border border-purple-100"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
             {/* Print-only signature line */}
             <div className="hidden print:flex justify-between mt-20">
               <div className="text-center border-t border-gray-300 pt-2 w-48">
                 <p className="text-xs font-bold uppercase">Candidate Signature</p>
               </div>
               <div className="text-center border-t border-gray-300 pt-2 w-48">
-                <p className="text-xs font-bold uppercase">Registrar</p>
+                <p className="text-xs font-bold uppercase">Director of Education</p>
               </div>
             </div>
 

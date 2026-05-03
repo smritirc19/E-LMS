@@ -10,6 +10,7 @@ import CoursePlayer from './pages/CoursePlayer';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Navbar from './components/Navbar';
+import MockPayment from './pages/MockPayment';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/course-player/:courseId" element={<CoursePlayer />} />
           <Route path="/certificate/:courseId" element={<Certificate />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/checkout/:mongoId" element={<MockPayment />} />
         </Route>
       </Routes>
     </BrowserRouter>
